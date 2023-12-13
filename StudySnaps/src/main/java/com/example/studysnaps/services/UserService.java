@@ -24,17 +24,16 @@ import java.security.Key;
 import java.util.Date;
 import java.util.function.Function;
 
-@RequiredArgsConstructor
 
 @Service
+@RequiredArgsConstructor
+
 public class UserService implements IuserService{
 
 
 @Autowired
     UserRepository userRepository;
 
-
-    private final PasswordEncoder passwordEncoder;
 
     @Override
     public UserDetailsService userDetailsService() {

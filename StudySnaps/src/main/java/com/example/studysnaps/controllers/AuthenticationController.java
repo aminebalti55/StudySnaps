@@ -1,11 +1,12 @@
 package com.example.studysnaps.controllers;
 
 
-import com.security.jwt.dto.JwtAuthenticationResponse;
-import com.security.jwt.dto.LoginRequest;
-import com.security.jwt.dto.RegisterRequest;
-import com.security.jwt.model.User;
-import com.security.jwt.service.IAuthenticationService;
+import com.example.studysnaps.Iservice.IAuthenticationService;
+import com.example.studysnaps.dto.JwtAuthenticationResponse;
+import com.example.studysnaps.dto.LoginRequest;
+import com.example.studysnaps.dto.RegisterRequest;
+import com.example.studysnaps.entities.User;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
