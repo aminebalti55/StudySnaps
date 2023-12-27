@@ -1,18 +1,20 @@
 package com.example.studysnaps.entities;
 
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.util.List;
 @Entity
+@Getter
+@Setter
 public class PDFDocument {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer docId;
     private String title;
-    private Integer numberOfPages;
-    @Column(length = 10000)
-    private String textContent;
+
 
     @ManyToMany
     @JoinTable(
@@ -29,5 +31,10 @@ public class PDFDocument {
 
     @OneToMany(mappedBy = "pdfDoc")
     private List<Quiz> quiz;
+
+    @ManyToOne
+    @JoinColumn(name = "userId")
+    private User user;
+
 
 }

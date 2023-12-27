@@ -9,6 +9,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.Collection;
+import java.util.Date;
 import java.util.List;
 
 @Entity
@@ -29,6 +30,32 @@ public class User  implements UserDetails {
     private String email;
 
     private Role role;
+
+
+    @OneToMany(mappedBy = "user")
+    private List<PDFDocument> uploadedDocuments;
+
+
+    @Column(name = "is_deleted")
+    private Boolean isDeleted = false;
+
+    @Temporal(TemporalType.TIMESTAMP)
+    @Column(name = "deleted_at")
+    private Date deletedAt;
+
+    @Temporal(TemporalType.TIMESTAMP)
+    @Column(name = "updated_at")
+    private Date updatedAt;
+
+    @PrePersist
+    protected void onCreate() {
+        updatedAt = new Date();
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = new Date();
+    }
 
 
     @ManyToMany(mappedBy = "members")

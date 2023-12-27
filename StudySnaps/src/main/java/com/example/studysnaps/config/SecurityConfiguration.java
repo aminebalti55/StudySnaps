@@ -32,6 +32,8 @@ public class SecurityConfiguration {
                         .requestMatchers("/api/v1/auth/**").permitAll()
                         .requestMatchers("/api/v1/admin","/question/upload").hasAuthority(Role.ADMIN.name())
                         .requestMatchers("/api/v1/user").hasAuthority(Role.USER.name())
+                        .requestMatchers("/Pdf/**").hasAuthority(Role.USER.name())
+
                         .anyRequest().authenticated())
                 .sessionManagement(manager -> manager.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authenticationProvider(authenticationProvider())
