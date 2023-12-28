@@ -22,9 +22,12 @@ public class Quiz {
     private String title;
 
     @ElementCollection
+    @Column(length = 5000)
+
     private List<String> questions;
 
     @ElementCollection
+    @Column(length = 5000)
     private List<String> answers;
 
     @ElementCollection

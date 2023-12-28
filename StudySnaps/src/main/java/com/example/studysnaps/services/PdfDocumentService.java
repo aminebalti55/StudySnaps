@@ -4,8 +4,10 @@ package com.example.studysnaps.services;
 
 import com.example.studysnaps.Repositories.PDFDocumentRepository;
 import com.example.studysnaps.Repositories.QuizRepository;
+import com.example.studysnaps.Repositories.UserRepository;
 import com.example.studysnaps.entities.PDFDocument;
 import com.example.studysnaps.entities.Quiz;
+import com.example.studysnaps.entities.User;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -33,6 +35,8 @@ PDFDocumentRepository pdfDocumentRepository;
 @Autowired
 QuizRepository quizRepository;
 
+@Autowired
+    UserRepository userRepository ;
     public String extractTextFromPDF(MultipartFile file) {
         try (InputStream input = file.getInputStream();
              PDDocument document = PDDocument.load(input)) {
@@ -51,7 +55,7 @@ QuizRepository quizRepository;
     private String apiKey;
 
 
-    public Map<String, Object> generateQuizzesAndAnswers(String pdfText, String textLanguage) throws JsonProcessingException {
+    public Map<String, Object> generateQuizzesAndAnswers(String pdfText, String textLanguage, String userEmail) throws JsonProcessingException {
         // Create a prompt based on the PDF content
         String prompt = "Please read the following text and generate a list of 10 unique questions suitable for a quiz, each one designed to test comprehension of the material presented. Focus on key details and concepts introduced in the passages.\n\n"
                 + "Language: " + textLanguage + "\n\n"
@@ -73,7 +77,7 @@ QuizRepository quizRepository;
         List<String> formattedAnswers = formatAnswers(answers);
         quizzesAndAnswers.put("answers", formattedAnswers);
 
-        saveQuizzesAndAnswersToDatabase(quizzesAndAnswers, pdfText, textLanguage);
+        saveQuizzesAndAnswersToDatabase(quizzesAndAnswers, pdfText, textLanguage ,userEmail);
 
         return quizzesAndAnswers;
     }
@@ -104,7 +108,7 @@ QuizRepository quizRepository;
         return formattedAnswers;
     }
 
-    private void saveQuizzesAndAnswersToDatabase(Map<String, Object> quizzesAndAnswers, String pdfText, String textLanguage) {
+    public void saveQuizzesAndAnswersToDatabase(Map<String, Object> quizzesAndAnswers, String pdfText, String textLanguage ,String userEmail) {
         List<String> questions = (List<String>) quizzesAndAnswers.get("questions");
         List<String> answers = (List<String>) quizzesAndAnswers.get("answers");
 
@@ -117,7 +121,11 @@ QuizRepository quizRepository;
             pdfDocument.setSummary(Collections.emptyList()); // Add summaries if available
             pdfDocument.setFlashCardSet(Collections.emptyList()); // Add flash card sets if available
 
-            // Save the PDFDocument entity to get its ID
+            // Associate the PDF document with the current user
+            User user = userRepository.findByEmail(userEmail)
+                    .orElseThrow(() -> new IllegalArgumentException("User not found"));
+            pdfDocument.setUser(user);
+
             pdfDocument = pdfDocumentRepository.save(pdfDocument);
 
             // Create a new Quiz entity
