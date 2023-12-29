@@ -35,20 +35,15 @@ public class PdfDocumentController {
     public ResponseEntity<Map<String, Object>> uploadPDF(@RequestParam("file") MultipartFile file,
                                                          Authentication authentication) {
         try {
-            // Extract text from the uploaded PDF
             String pdfText = pdfDocumentService.extractTextFromPDF(file);
 
             String textLanguage = "English";
 
-            // Get the current user details from the UserDetailsService
             UserDetails userDetails = (UserDetails) authentication.getPrincipal();
             String userEmail = userDetails.getUsername();
 
-            // Generate quizzes and answers based on the PDF content
             Map<String, Object> quizzesAndAnswers = pdfDocumentService.generateQuizzesAndAnswers(pdfText, textLanguage,userEmail);
 
-            // Create and save entities based on the extracted information
-            pdfDocumentService.saveQuizzesAndAnswersToDatabase(quizzesAndAnswers, pdfText, textLanguage, userEmail);
 
             return ResponseEntity.ok(quizzesAndAnswers);
         } catch (IOException e) {

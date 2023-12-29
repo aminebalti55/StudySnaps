@@ -86,7 +86,8 @@ QuizRepository quizRepository;
         List<String> formattedQuestions = new ArrayList<>();
 
         for (String question : questions) {
-            String[] questionLines = question.split("\n\n");
+            // Split the bulk text into individual questions based on the question number followed by a period and space "\n\d+\."
+            String[] questionLines = question.split("\n(?=\\d+\\.)");
             for (String line : questionLines) {
                 formattedQuestions.add(line.trim());
             }
@@ -99,9 +100,14 @@ QuizRepository quizRepository;
         List<String> formattedAnswers = new ArrayList<>();
 
         for (String answer : answers) {
-            String[] answerLines = answer.split("\n\n");
-            for (String line : answerLines) {
-                formattedAnswers.add(line.trim());
+            // Split the answers string into individual answer strings using triple newlines as the delimiter
+            String[] splitAnswers = answer.trim().split("\n\n\n");
+            for (String splitAnswer : splitAnswers) {
+                if (!splitAnswer.trim().isEmpty()) {
+                    // Remove numbering from each answer and trim
+                    String formattedAnswer = splitAnswer.replaceAll("^\\d+\\.\\s+", "").trim();
+                    formattedAnswers.add(formattedAnswer);
+                }
             }
         }
 
