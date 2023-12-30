@@ -32,29 +32,29 @@ public class PdfDocumentController {
 
 
     @PostMapping(value = "/upload-pdf", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<Map<String, Object>> uploadPDF(
-            @RequestParam("file") MultipartFile file,
-            @RequestParam(value = "language", defaultValue = "English") String textLanguage) {
-
+    public ResponseEntity<Map<String, Object>> uploadPDF(@RequestParam("file") MultipartFile file,
+                                                         Authentication authentication,  @RequestParam(value = "language", defaultValue = "English") String textLanguage){
         try {
-            // Extract text from the uploaded PDF
             String pdfText = pdfDocumentService.extractTextFromPDF(file);
 
-            // Generate quizzes and answers based on the PDF content and specified language
-            Map<String, Object> quizzesAndAnswers = pdfDocumentService.generateQuizzesAndAnswers(pdfText, textLanguage);
 
-            // Create and save entities based on the extracted information
-            // (not shown here, you can implement these methods in your service)
+            UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+            String userEmail = userDetails.getUsername();
+
+            Map<String, Object> quizzesAndAnswers = pdfDocumentService.generateQuizzesAndAnswers(pdfText, textLanguage,userEmail);
+
+
             return ResponseEntity.ok(quizzesAndAnswers);
         } catch (IOException e) {
             e.printStackTrace();
 
             // In case of an error, return an error map in the response body
             Map<String, Object> errorResponse = new HashMap<>();
-            errorResponse.put("error", "Error processing the PDF file.");
+            errorResponse.put("error", "Error processing the PDF file: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         }
     }
+
 }
 
 

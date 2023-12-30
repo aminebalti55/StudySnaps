@@ -55,7 +55,7 @@ QuizRepository quizRepository;
     private String apiKey;
 
 
-    public Map<String, Object> generateQuizzesAndAnswers(String pdfText, String textLanguage) throws JsonProcessingException {
+    public Map<String, Object> generateQuizzesAndAnswers(String pdfText, String textLanguage, String userEmail) throws JsonProcessingException {
         // Create a prompt based on the PDF content
         String prompt = "Please read the following text and generate a list of 10 unique questions suitable for a quiz, each one designed to test comprehension of the material presented. Focus on key details and concepts introduced in the passages.\n\n"
                 + "Language: " + textLanguage + "\n\n"
@@ -77,7 +77,7 @@ QuizRepository quizRepository;
         List<String> formattedAnswers = formatAnswers(answers);
         quizzesAndAnswers.put("answers", formattedAnswers);
 
-        //   saveQuizzesAndAnswersToDatabase(quizzesAndAnswers, pdfText, textLanguage);
+        saveQuizzesAndAnswersToDatabase(quizzesAndAnswers, pdfText, textLanguage ,userEmail);
 
         return quizzesAndAnswers;
     }
