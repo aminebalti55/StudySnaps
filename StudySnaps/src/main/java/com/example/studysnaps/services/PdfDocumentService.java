@@ -34,6 +34,8 @@ public class PdfDocumentService {
 PDFDocumentRepository pdfDocumentRepository;
 @Autowired
 QuizRepository quizRepository;
+@Autowired
+TagService tagService;
 
 @Autowired
     UserRepository userRepository ;
@@ -55,7 +57,7 @@ QuizRepository quizRepository;
     private String apiKey;
 
 
-    public Map<String, Object> generateQuizzesAndAnswers(String pdfText, String textLanguage, String userEmail) throws JsonProcessingException {
+    public Map<String, Object> generateQuizzesAndAnswers(String pdfText, String textLanguage, String userEmail,List<String> tags) throws JsonProcessingException {
         // Create a prompt based on the PDF content
         String prompt = "Please read the following text and generate a list of 10 unique questions suitable for a quiz, each one designed to test comprehension of the material presented. Focus on key details and concepts introduced in the passages.\n\n"
                 + "Language: " + textLanguage + "\n\n"
@@ -77,7 +79,7 @@ QuizRepository quizRepository;
         List<String> formattedAnswers = formatAnswers(answers);
         quizzesAndAnswers.put("answers", formattedAnswers);
 
-        saveQuizzesAndAnswersToDatabase(quizzesAndAnswers, pdfText, textLanguage ,userEmail);
+        saveQuizzesAndAnswersToDatabase(quizzesAndAnswers, pdfText, textLanguage ,userEmail,tags);
 
         return quizzesAndAnswers;
     }
@@ -114,7 +116,7 @@ QuizRepository quizRepository;
         return formattedAnswers;
     }
 
-    public void saveQuizzesAndAnswersToDatabase(Map<String, Object> quizzesAndAnswers, String pdfText, String textLanguage ,String userEmail) {
+    public void saveQuizzesAndAnswersToDatabase(Map<String, Object> quizzesAndAnswers, String pdfText, String textLanguage ,String userEmail,List<String> tags) {
         List<String> questions = (List<String>) quizzesAndAnswers.get("questions");
         List<String> answers = (List<String>) quizzesAndAnswers.get("answers");
 
@@ -123,7 +125,7 @@ QuizRepository quizRepository;
             // Create a new PDFDocument entity
             PDFDocument pdfDocument = new PDFDocument();
             pdfDocument.setTitle("Title Placeholder"); // Provide an appropriate title
-            pdfDocument.setTags(Collections.emptyList()); // Add tags if available
+            pdfDocument.setTags(tagService.getOrCreateTags(tags)); // Use a service to get or create tags
             pdfDocument.setSummary(Collections.emptyList()); // Add summaries if available
             pdfDocument.setFlashCardSet(Collections.emptyList()); // Add flash card sets if available
 

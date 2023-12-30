@@ -16,7 +16,7 @@ public class PDFDocument {
     private String title;
 
 
-    @ManyToMany
+    @ManyToMany(cascade = {CascadeType.MERGE, CascadeType.PERSIST})
     @JoinTable(
             name = "document_tags",
             joinColumns = @JoinColumn(name = "docId"),

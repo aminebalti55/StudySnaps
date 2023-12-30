@@ -18,6 +18,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -33,7 +34,7 @@ public class PdfDocumentController {
 
     @PostMapping(value = "/upload-pdf", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Map<String, Object>> uploadPDF(@RequestParam("file") MultipartFile file,
-                                                         Authentication authentication,  @RequestParam(value = "language", defaultValue = "English") String textLanguage){
+                                                         Authentication authentication,  @RequestParam(value = "language", defaultValue = "English") String textLanguage, @RequestParam(value = "tags", defaultValue = "") List<String> tags){
         try {
             String pdfText = pdfDocumentService.extractTextFromPDF(file);
 
@@ -41,7 +42,7 @@ public class PdfDocumentController {
             UserDetails userDetails = (UserDetails) authentication.getPrincipal();
             String userEmail = userDetails.getUsername();
 
-            Map<String, Object> quizzesAndAnswers = pdfDocumentService.generateQuizzesAndAnswers(pdfText, textLanguage,userEmail);
+            Map<String, Object> quizzesAndAnswers = pdfDocumentService.generateQuizzesAndAnswers(pdfText, textLanguage,userEmail,tags);
 
 
             return ResponseEntity.ok(quizzesAndAnswers);
