@@ -102,8 +102,8 @@ TagService tagService;
         List<String> formattedAnswers = new ArrayList<>();
 
         for (String answer : answers) {
-            // Split the answers string into individual answer strings using triple newlines as the delimiter
-            String[] splitAnswers = answer.trim().split("\n\n\n");
+            // Split the answers string into individual answer strings using the newline character
+            String[] splitAnswers = answer.trim().split("\\n");
             for (String splitAnswer : splitAnswers) {
                 if (!splitAnswer.trim().isEmpty()) {
                     // Remove numbering from each answer and trim
@@ -115,7 +115,6 @@ TagService tagService;
 
         return formattedAnswers;
     }
-
     public void saveQuizzesAndAnswersToDatabase(Map<String, Object> quizzesAndAnswers, String pdfText, String textLanguage ,String userEmail,List<String> tags) {
         List<String> questions = (List<String>) quizzesAndAnswers.get("questions");
         List<String> answers = (List<String>) quizzesAndAnswers.get("answers");
