@@ -67,6 +67,15 @@ public class PdfDocumentController {
         return ResponseEntity.ok(result);
     }
 
+    @GetMapping("/start/{quizId}")
+    public String startQuiz(@PathVariable Integer quizId) {
+        return quizService.startQuiz(quizId);
+    }
+
+    @GetMapping("/remainingTime/{quizId}")
+    public long getRemainingTime(@PathVariable Integer quizId) {
+        return quizService.getRemainingTime(quizId);
+    }
 
 
 }

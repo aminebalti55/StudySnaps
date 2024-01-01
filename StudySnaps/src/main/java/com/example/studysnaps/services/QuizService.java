@@ -9,6 +9,8 @@ import org.apache.commons.text.similarity.JaroWinklerSimilarity;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -89,4 +91,33 @@ public class QuizService {
         return correctAnswer.substring(0, hintLength) + "...";
     }
 
+
+    public String startQuiz(int quizId) {
+        Quiz quiz = quizRepository.findById(quizId).orElse(null);
+
+        if (quiz == null) {
+            return "Quiz not found.";
+        }
+
+        quiz.setQuizStartTime(LocalDateTime.now());
+        quiz.setQuizDuration(Duration.ofMinutes(3));
+
+
+        quizRepository.save(quiz);
+
+        return "Quiz started!";
+    }
+
+    public long getRemainingTime(int quizId) {
+        Quiz quiz = quizRepository.findById(quizId).orElse(null);
+
+        if (quiz == null || quiz.getQuizStartTime() == null || quiz.getQuizDuration() == null) {
+            return 0;
+        }
+
+        LocalDateTime endTime = quiz.getQuizStartTime().plus(quiz.getQuizDuration());
+        long remainingSeconds = Duration.between(LocalDateTime.now(), endTime).getSeconds();
+
+        return Math.max(0, remainingSeconds);
+    }
 }
