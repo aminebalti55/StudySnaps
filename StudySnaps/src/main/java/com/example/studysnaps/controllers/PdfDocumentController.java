@@ -4,16 +4,14 @@ package com.example.studysnaps.controllers;
 import com.example.studysnaps.Repositories.QuizRepository;
 import com.example.studysnaps.services.PdfDocumentService;
 
+import com.example.studysnaps.services.QuizService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -29,6 +27,9 @@ public class PdfDocumentController {
     PdfDocumentService pdfDocumentService;
     @Autowired
     QuizRepository quizRepository;
+
+    @Autowired
+    QuizService quizService;
 
 
 
@@ -49,12 +50,24 @@ public class PdfDocumentController {
         } catch (IOException e) {
             e.printStackTrace();
 
-            // In case of an error, return an error map in the response body
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("error", "Error processing the PDF file: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         }
     }
+
+    @PostMapping("/check-answer/{quizId}/{questionIndex}")
+    public ResponseEntity<String> checkAnswer(
+            @PathVariable Integer quizId,
+            @PathVariable Integer questionIndex,
+            @RequestBody String userResponse) {
+
+        String result = quizService.checkUserResponse(quizId, questionIndex, userResponse);
+
+        return ResponseEntity.ok(result);
+    }
+
+
 
 }
 

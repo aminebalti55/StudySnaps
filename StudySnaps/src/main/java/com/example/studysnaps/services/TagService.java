@@ -43,7 +43,7 @@ public class TagService {
             if (tag == null) {
                 tag = new Tag();
                 tag.setName(tagName);
-                tag.setDocuments(new ArrayList<>()); // Initialize the documents list
+                tag.setDocuments(new ArrayList<>());
             }
 
             // Associate each uploaded document with the tag
@@ -59,8 +59,7 @@ public class TagService {
             tags.add(tag);
 
             DocumentTag documentTag = new DocumentTag();
-            documentTag.setPdfDocument(user.getUploadedDocuments().get(0)); // Assuming you want to associate with the first document
-            documentTag.setTag(tag);
+            documentTag.setPdfDocument(user.getUploadedDocuments().get(0));
             documentTag.setUserId(user.getUserId());
 
             documentTagRepository.save(documentTag);

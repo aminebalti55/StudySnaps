@@ -58,19 +58,16 @@ TagService tagService;
 
 
     public Map<String, Object> generateQuizzesAndAnswers(String pdfText, String textLanguage, String userEmail,List<String> tags) throws JsonProcessingException {
-        // Create a prompt based on the PDF content
+
         String prompt = "Please read the following text and generate a list of 10 unique questions suitable for a quiz, each one designed to test comprehension of the material presented. Focus on key details and concepts introduced in the passages.\n\n"
                 + "Language: " + textLanguage + "\n\n"
-                + pdfText.substring(0, Math.min(pdfText.length(), 500)) // Include a significant snippet of the text for context
+                + pdfText.substring(0, Math.min(pdfText.length(), 500))
                 + "\n\nQuestions should be clear, concise, and directly related to the content of the text.";
 
-        // Generate questions
         List<String> questions = generateQuestions(prompt);
 
-        // Generate answers for the questions
         List<String> answers = generateAnswers(pdfText, textLanguage, questions);
 
-        // Create a map to store questions and answers
         Map<String, Object> quizzesAndAnswers = new HashMap<>();
 
         List<String> formattedQuestions = formatQuestions(questions);
@@ -88,7 +85,6 @@ TagService tagService;
         List<String> formattedQuestions = new ArrayList<>();
 
         for (String question : questions) {
-            // Split the bulk text into individual questions based on the question number followed by a period and space "\n\d+\."
             String[] questionLines = question.split("\n(?=\\d+\\.)");
             for (String line : questionLines) {
                 formattedQuestions.add(line.trim());
@@ -102,11 +98,9 @@ TagService tagService;
         List<String> formattedAnswers = new ArrayList<>();
 
         for (String answer : answers) {
-            // Split the answers string into individual answer strings using the newline character
             String[] splitAnswers = answer.trim().split("\\n");
             for (String splitAnswer : splitAnswers) {
                 if (!splitAnswer.trim().isEmpty()) {
-                    // Remove numbering from each answer and trim
                     String formattedAnswer = splitAnswer.replaceAll("^\\d+\\.\\s+", "").trim();
                     formattedAnswers.add(formattedAnswer);
                 }
@@ -119,26 +113,22 @@ TagService tagService;
         List<String> questions = (List<String>) quizzesAndAnswers.get("questions");
         List<String> answers = (List<String>) quizzesAndAnswers.get("answers");
 
-        // Assuming "questions" and "answers" are both present in the response
         if (!questions.isEmpty() && !answers.isEmpty()) {
-            // Create a new PDFDocument entity
             PDFDocument pdfDocument = new PDFDocument();
-            pdfDocument.setTitle("Title Placeholder"); // Provide an appropriate title
-            pdfDocument.setTags(tagService.getOrCreateTags(tags)); // Use a service to get or create tags
-            pdfDocument.setSummary(Collections.emptyList()); // Add summaries if available
-            pdfDocument.setFlashCardSet(Collections.emptyList()); // Add flash card sets if available
+            pdfDocument.setTitle("Title Placeholder");
+            pdfDocument.setTags(tagService.getOrCreateTags(tags));
+            pdfDocument.setSummary(Collections.emptyList());
+            pdfDocument.setFlashCardSet(Collections.emptyList());
 
-            // Associate the PDF document with the current user
             User user = userRepository.findByEmail(userEmail)
                     .orElseThrow(() -> new IllegalArgumentException("User not found"));
             pdfDocument.setUser(user);
 
             pdfDocument = pdfDocumentRepository.save(pdfDocument);
 
-            // Create a new Quiz entity
             Quiz quiz = new Quiz();
             quiz.setPdfDoc(pdfDocument);
-            quiz.setTitle("Generated Quiz"); // Provide an appropriate title
+            quiz.setTitle("Generated Quiz");
             quiz.setQuestions(questions);
             quiz.setAnswers(answers);
 
@@ -151,22 +141,17 @@ TagService tagService;
 
 
     private List<String> generateQuestions(String prompt) throws JsonProcessingException {
-        // Setup the headers
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
 
-        // The body of the request
         Map<String, Object> map = new HashMap<>();
         map.put("contents", Collections.singletonMap("parts", Collections.singletonList(Collections.singletonMap("text", prompt))));
 
-        // Wrap your body and headers into an entity
         HttpEntity<Map<String, Object>> entity = new HttpEntity<>(map, headers);
 
-        // Include the API key in the query parameters
         String url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=" + apiKey;
 
-        // Send the request using RestTemplate
         ResponseEntity<String> response = restTemplate.postForEntity(url, entity, String.class);
 
         String generatedQuestions = response.getBody();
@@ -198,12 +183,11 @@ TagService tagService;
 
 
     private String generateSingleAnswer(String promptForAnswer) throws JsonProcessingException {
-        // Setup the headers
+
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
 
-        // The body of the request
         Map<String, Object> map = new HashMap<>();
         map.put("contents", Collections.singletonMap("parts", Collections.singletonList(Collections.singletonMap("text", promptForAnswer))));
 
