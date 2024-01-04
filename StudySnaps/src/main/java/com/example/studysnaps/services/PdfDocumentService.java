@@ -11,6 +11,10 @@ import com.example.studysnaps.entities.User;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.itextpdf.text.Document;
+import com.itextpdf.text.DocumentException;
+import com.itextpdf.text.Paragraph;
+import com.itextpdf.text.pdf.PdfWriter;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,6 +27,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.*;
@@ -77,7 +82,7 @@ TagService tagService;
         quizzesAndAnswers.put("answers", formattedAnswers);
 
         Map<String, Integer> ids = saveQuizzesAndAnswersToDatabase(quizzesAndAnswers, pdfText, textLanguage, userEmail, tags);
-        quizzesAndAnswers.putAll(ids); // Add the IDs to the `quizzesAndAnswers` map
+        quizzesAndAnswers.putAll(ids);
 
         return quizzesAndAnswers;
     }
@@ -134,10 +139,8 @@ TagService tagService;
             quiz.setQuestions(questions);
             quiz.setAnswers(answers);
 
-            // Save the Quiz entity and capture the returned Quiz with its generated ID
             quiz = quizRepository.save(quiz);
 
-            // Put the IDs into the map
             ids.put("docId", pdfDocument.getDocId());
             ids.put("quizId", quiz.getQuizId());
         }
@@ -257,8 +260,35 @@ TagService tagService;
 
 
 
+    private String createSummarizationPrompt(String pdfText, String textLanguage) {
+        return String.format(
+                "Summarize the essential information from the following %s language text into a concise, easily understandable format, while retaining all critical details and concepts:\n\n%s",
+                textLanguage,
+                pdfText
+        );
+    }
 
 
+    public String summarizePdfText(MultipartFile file, String textLanguage) throws IOException, JsonProcessingException {
+        String pdfText = extractTextFromPDF(file);
+
+        String prompt = createSummarizationPrompt(pdfText, textLanguage);
+
+        String summary = generateSingleAnswer(prompt);
+
+        return summary;
+    }
+
+
+    public ByteArrayOutputStream generatePdfFromSummary(String summary) throws DocumentException {
+        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+        Document document = new Document();
+        PdfWriter.getInstance(document, byteArrayOutputStream);
+        document.open();
+        document.add(new Paragraph(summary));
+        document.close();
+        return byteArrayOutputStream;
+    }
 
 
 

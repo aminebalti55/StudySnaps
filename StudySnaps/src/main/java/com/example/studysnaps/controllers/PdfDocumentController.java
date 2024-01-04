@@ -7,14 +7,13 @@ import com.example.studysnaps.services.PdfDocumentService;
 
 import com.example.studysnaps.services.QuizService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
@@ -48,21 +47,17 @@ public class PdfDocumentController {
             UserDetails userDetails = (UserDetails) authentication.getPrincipal();
             String userEmail = userDetails.getUsername();
 
-            // Generate quizzes and answers, which will also save them to the database and return a map with IDs
             Map<String, Object> quizzesAndAnswers = pdfDocumentService.generateQuizzesAndAnswers(pdfText, textLanguage, userEmail, tags);
 
-            // Retrieve the saved document ID and quiz ID from the map
             Integer pdfDocumentId = (Integer) quizzesAndAnswers.get("docId");
             Integer quizId = (Integer) quizzesAndAnswers.get("quizId");
 
-            // Initialize the user's progress for the uploaded PDF and generated quiz
             if (pdfDocumentId != null && quizId != null) {
                 quizService.initializeUserProgress(userEmail, quizId, pdfDocumentId);
             } else {
                 throw new IllegalStateException("Quiz or Document ID not found after save operation.");
             }
 
-            // Respond with the created quizzes and answers
             return ResponseEntity.ok(quizzesAndAnswers);
 
         } catch (IOException e) {
@@ -71,7 +66,7 @@ public class PdfDocumentController {
             errorResponse.put("error", "Error processing the PDF file: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         } catch (IllegalStateException e) {
-            // Handle IllegalStateException
+
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("error", e.getMessage());
             return ResponseEntity.badRequest().body(errorResponse);
@@ -104,6 +99,21 @@ public class PdfDocumentController {
         return quizService.getRemainingTime(quizId);
     }
 
+
+    @GetMapping(value = "/download-summary", produces = MediaType.APPLICATION_PDF_VALUE)
+    public ResponseEntity<byte[]> downloadSummary(@RequestParam("file") MultipartFile file,
+                                                  @RequestParam(value = "language", defaultValue = "English") String textLanguage) {
+        try {
+            String summary = pdfDocumentService.summarizePdfText(file, textLanguage);
+            ByteArrayOutputStream baos = pdfDocumentService.generatePdfFromSummary(summary);
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentDisposition(ContentDisposition.builder("attachment").filename("summary.pdf").build());
+            return new ResponseEntity<>(baos.toByteArray(), headers, HttpStatus.OK);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
 
 }
 

@@ -11,8 +11,4 @@ public class Summary {
     @ManyToOne
     @JoinColumn(name = "docId")
     private PDFDocument pdfDoc;
-
-    private String title;
-    private String text;
-    private Integer length;
 }
