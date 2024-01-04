@@ -13,7 +13,7 @@ public class FlashCard {
     @JoinColumn(name = "setId")
     private FlashCardSet flashCardSet;
 
-    private String questionText;
-    private String answerText;
+    @Column(columnDefinition = "TEXT")
+    private String definitionText;
 
 }
