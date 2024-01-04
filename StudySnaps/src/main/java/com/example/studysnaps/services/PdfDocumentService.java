@@ -76,7 +76,8 @@ TagService tagService;
         List<String> formattedAnswers = formatAnswers(answers);
         quizzesAndAnswers.put("answers", formattedAnswers);
 
-        saveQuizzesAndAnswersToDatabase(quizzesAndAnswers, pdfText, textLanguage ,userEmail,tags);
+        Map<String, Integer> ids = saveQuizzesAndAnswersToDatabase(quizzesAndAnswers, pdfText, textLanguage, userEmail, tags);
+        quizzesAndAnswers.putAll(ids); // Add the IDs to the `quizzesAndAnswers` map
 
         return quizzesAndAnswers;
     }
@@ -109,9 +110,10 @@ TagService tagService;
 
         return formattedAnswers;
     }
-    public void saveQuizzesAndAnswersToDatabase(Map<String, Object> quizzesAndAnswers, String pdfText, String textLanguage ,String userEmail,List<String> tags) {
+    public Map<String, Integer> saveQuizzesAndAnswersToDatabase(Map<String, Object> quizzesAndAnswers, String pdfText, String textLanguage, String userEmail, List<String> tags) {
         List<String> questions = (List<String>) quizzesAndAnswers.get("questions");
         List<String> answers = (List<String>) quizzesAndAnswers.get("answers");
+        Map<String, Integer> ids = new HashMap<>();
 
         if (!questions.isEmpty() && !answers.isEmpty()) {
             PDFDocument pdfDocument = new PDFDocument();
@@ -132,13 +134,16 @@ TagService tagService;
             quiz.setQuestions(questions);
             quiz.setAnswers(answers);
 
-            // Save the Quiz entity
-            quizRepository.save(quiz);
+            // Save the Quiz entity and capture the returned Quiz with its generated ID
+            quiz = quizRepository.save(quiz);
 
-
+            // Put the IDs into the map
+            ids.put("docId", pdfDocument.getDocId());
+            ids.put("quizId", quiz.getQuizId());
         }
-    }
 
+        return ids;
+    }
 
     private List<String> generateQuestions(String prompt) throws JsonProcessingException {
         HttpHeaders headers = new HttpHeaders();

@@ -1,8 +1,13 @@
 package com.example.studysnaps.services;
 
 
+import com.example.studysnaps.Repositories.PDFDocumentRepository;
 import com.example.studysnaps.Repositories.QuizRepository;
+import com.example.studysnaps.Repositories.UserProgressTrackingRepository;
+import com.example.studysnaps.Repositories.UserRepository;
 import com.example.studysnaps.entities.Quiz;
+import com.example.studysnaps.entities.User;
+import com.example.studysnaps.entities.UserProgressTracking;
 import opennlp.tools.stemmer.PorterStemmer;
 import opennlp.tools.tokenize.SimpleTokenizer;
 import org.apache.commons.text.similarity.JaroWinklerSimilarity;
@@ -12,6 +17,7 @@ import org.springframework.stereotype.Service;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.HashSet;
+import java.util.Optional;
 import java.util.Set;
 
 @Service
@@ -20,8 +26,17 @@ public class QuizService {
     @Autowired
     private QuizRepository quizRepository;
 
-    public String checkUserResponse(int quizId, int questionIndex, String userResponse) {
+    @Autowired
+    private UserProgressTrackingRepository userProgressTrackingRepository;
 
+    @Autowired
+    UserRepository userRepository;
+
+    @Autowired
+    PDFDocumentRepository pdfDocumentRepository;
+
+
+    public String checkUserResponse(int quizId, int questionIndex, String userResponse, String userEmail) {
         Quiz quiz = quizRepository.findById(quizId).orElse(null);
 
         if (quiz == null) {
@@ -36,6 +51,9 @@ public class QuizService {
         double similarity = calculateJaroWinklerSimilarity(userResponse, correctAnswer);
 
         if (similarity >= 0.3) {
+            // Update user progress if the answer is correct
+            updateProgressOnQuestionAnswered(userEmail, 0.1);
+
             return "Success! Your answer is correct.";
         } else {
             String hint = generateHintBasedOnAnswer(correctAnswer);
@@ -120,4 +138,50 @@ public class QuizService {
 
         return Math.max(0, remainingSeconds);
     }
+
+    public void initializeUserProgress(String userEmail, Integer quizId, Integer pdfDocumentId) {
+        Optional<User> optionalUser = userRepository.findByEmail(userEmail);
+
+        if (optionalUser.isPresent()) {
+            User user = optionalUser.get();
+
+            UserProgressTracking userProgress = userProgressTrackingRepository.findByUserAndPdfDocumentIsNull(user);
+
+            if (userProgress == null) {
+                userProgress = new UserProgressTracking();
+                userProgress.setUser(user);
+                userProgress.setProgressPercentage(0.0);
+                userProgress.setLastAccessed(LocalDateTime.now());
+
+                userProgress.setQuiz(quizRepository.findById(quizId).orElse(null));
+                userProgress.setPdfDocument(pdfDocumentRepository.findById(pdfDocumentId).orElse(null));
+
+                userProgressTrackingRepository.save(userProgress);
+            }
+        } else {
+            System.err.println("User not found with email: " + userEmail);
+        }
+    }
+
+
+    private void updateProgressOnQuestionAnswered(String userEmail, double progressIncrement) {
+        Optional<User> optionalUser = userRepository.findByEmail(userEmail);
+
+        if (optionalUser.isPresent()) {
+            User user = optionalUser.get();
+            UserProgressTracking userProgress = userProgressTrackingRepository.findByUserAndPdfDocumentIsNull(user);
+
+            if (userProgress != null) {
+                double newProgress = Math.min(userProgress.getProgressPercentage() + progressIncrement, 100.0);
+                userProgress.setProgressPercentage(newProgress);
+                userProgress.setLastAccessed(LocalDateTime.now());
+                userProgressTrackingRepository.save(userProgress);
+            } else {
+                System.err.println("User progress not found for email: " + userEmail);
+            }
+        } else {
+            System.err.println("User not found with email: " + userEmail);
+        }
+    }
+
 }

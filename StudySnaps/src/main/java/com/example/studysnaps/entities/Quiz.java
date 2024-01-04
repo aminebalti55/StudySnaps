@@ -39,4 +39,7 @@ public class Quiz {
 
     private LocalDateTime quizStartTime;
 
+    @Column(name = "created_at")
+    private LocalDateTime createdAt;
+
 }
