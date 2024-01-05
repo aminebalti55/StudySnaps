@@ -24,8 +24,7 @@ public class PDFDocument {
             inverseJoinColumns = @JoinColumn(name = "tagId"))
     private List<Tag> tags;
 
-    @OneToMany(mappedBy = "pdfDoc")
-    private List<Summary> summary;
+
 
     @OneToMany(mappedBy = "pdfDoc")
     private List<FlashCardSet> flashCardSet;
@@ -39,5 +38,6 @@ public class PDFDocument {
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
-
+    @Lob
+    private byte[] content;
 }

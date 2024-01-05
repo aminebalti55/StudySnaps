@@ -2,18 +2,15 @@ package com.example.studysnaps.services;
 
 
 
-import com.example.studysnaps.Repositories.PDFDocumentRepository;
-import com.example.studysnaps.Repositories.QuizRepository;
-import com.example.studysnaps.Repositories.UserRepository;
-import com.example.studysnaps.entities.PDFDocument;
-import com.example.studysnaps.entities.Quiz;
-import com.example.studysnaps.entities.User;
+import com.example.studysnaps.Repositories.*;
+import com.example.studysnaps.entities.*;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.itextpdf.text.Document;
 import com.itextpdf.text.DocumentException;
 import com.itextpdf.text.Paragraph;
+import com.itextpdf.text.pdf.PdfDocument;
 import com.itextpdf.text.pdf.PdfWriter;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
@@ -27,6 +24,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -41,9 +39,13 @@ PDFDocumentRepository pdfDocumentRepository;
 QuizRepository quizRepository;
 @Autowired
 TagService tagService;
-
+@Autowired
+    FlashCardRepository flashCardRepository;
 @Autowired
     UserRepository userRepository ;
+
+@Autowired
+    FlashCardSetRepository flashCardSetRepository;
     public String extractTextFromPDF(MultipartFile file) {
         try (InputStream input = file.getInputStream();
              PDDocument document = PDDocument.load(input)) {
@@ -124,7 +126,6 @@ TagService tagService;
             PDFDocument pdfDocument = new PDFDocument();
             pdfDocument.setTitle("Title Placeholder");
             pdfDocument.setTags(tagService.getOrCreateTags(tags));
-            pdfDocument.setSummary(Collections.emptyList());
             pdfDocument.setFlashCardSet(Collections.emptyList());
 
             User user = userRepository.findByEmail(userEmail)
@@ -291,16 +292,38 @@ TagService tagService;
     }
 
 
+    public Map<String, Object> generateFlashCards(String pdfText, String textLanguage, String userEmail) throws JsonProcessingException {
+        String prompt = "Extract key concepts and definitions from the following text for creating educational flashcards. " +
+                "Each card should present a concept or term on one side and its definition or explanation on the other side. " +
+                "Focus on the most important and relevant information that would aid in studying the material presented.\n\n" +
+                "Language: " + textLanguage + "\n\n" +
+                 pdfText.substring(0, Math.min(pdfText.length(), 500)) + "\n\n" +
+                "Flashcards:";
 
 
+        List<String> definitions = generateQuestions(prompt);
+        Map<String, Object> flashCards = new HashMap<>();
+        FlashCardSet flashCardSet = saveFlashCardSetToDatabase(definitions, pdfText, textLanguage, userEmail);
+        flashCards.put("flashCardDefinitions", definitions);
 
+        return flashCards;
+    }
 
+    private FlashCardSet saveFlashCardSetToDatabase(List<String> definitions, String pdfText, String textLanguage, String userEmail) {
+        FlashCardSet flashCardSet = new FlashCardSet();
+        flashCardSet = flashCardSetRepository.save(flashCardSet);
+        saveFlashCardsToDatabase(definitions, flashCardSet);
+        return flashCardSet;
+    }
 
-
-
-
-
-
+    private void saveFlashCardsToDatabase(List<String> definitions, FlashCardSet flashCardSet) {
+        for (String definition : definitions) {
+            FlashCard flashCard = new FlashCard();
+            flashCard.setFlashCardSet(flashCardSet);
+            flashCard.setDefinitionText(definition);
+            flashCardRepository.save(flashCard);
+        }
+    }
 
 
 

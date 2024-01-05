@@ -1,11 +1,14 @@
 package com.example.studysnaps.controllers;
 
 
+import com.example.studysnaps.Repositories.FlashCardRepository;
 import com.example.studysnaps.Repositories.PDFDocumentRepository;
 import com.example.studysnaps.Repositories.QuizRepository;
+import com.example.studysnaps.entities.FlashCard;
 import com.example.studysnaps.services.PdfDocumentService;
 
 import com.example.studysnaps.services.QuizService;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.*;
 import org.springframework.security.core.Authentication;
@@ -33,7 +36,8 @@ public class PdfDocumentController {
 
     @Autowired
     PDFDocumentRepository pdfDocumentRepository;
-
+@Autowired
+    FlashCardRepository flashCardRepository;
 
 
     @PostMapping(value = "/upload-pdf", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -112,6 +116,55 @@ public class PdfDocumentController {
         } catch (Exception e) {
             e.printStackTrace();
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    @PostMapping(value = "/process-pdf", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<Map<String, Object>> processPDF(@RequestParam("file") MultipartFile file,
+                                                          Authentication authentication,
+                                                          @RequestParam(value = "language", defaultValue = "English") String textLanguage,
+                                                          @RequestParam(value = "tags", defaultValue = "") List<String> tags,
+                                                          @RequestParam(value = "action", defaultValue = "quiz") String action) {
+        try {
+
+            String pdfText = pdfDocumentService.extractTextFromPDF(file);
+            UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+            String userEmail = userDetails.getUsername();
+
+            Map<String, Object> result;
+
+            if ("quiz".equalsIgnoreCase(action)) {
+                result = pdfDocumentService.generateQuizzesAndAnswers(pdfText, textLanguage, userEmail, tags);
+
+                Integer pdfDocumentId = (Integer) result.get("docId");
+                Integer quizId = (Integer) result.get("quizId");
+
+                if (pdfDocumentId != null && quizId != null) {
+                    quizService.initializeUserProgress(userEmail, quizId, pdfDocumentId);
+                } else {
+                    throw new IllegalStateException("Document ID or Quiz ID not found after save operation.");
+                }
+
+
+            } else if ("flashcards".equalsIgnoreCase(action)) {
+
+                result = pdfDocumentService.generateFlashCards(pdfText, textLanguage, userEmail);
+            } else {
+                throw new IllegalArgumentException("Invalid action specified.");
+            }
+
+
+
+            return ResponseEntity.ok(result);
+        } catch (IOException e) {
+            e.printStackTrace();
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", "Error processing the PDF file: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(errorResponse);
         }
     }
 
