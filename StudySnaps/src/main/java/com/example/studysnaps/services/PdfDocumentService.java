@@ -312,16 +312,13 @@ TagService tagService;
     }
 
 
-    public String summarizePdfText(MultipartFile file, String textLanguage) throws IOException, JsonProcessingException {
+    public ByteArrayOutputStream summarizePdfAndGeneratePdf(MultipartFile file, String textLanguage) throws IOException, DocumentException {
         String pdfText = extractTextFromPDF(file);
-
         String prompt = createSummarizationPrompt(pdfText, textLanguage);
-
         String summary = generateSingleAnswer(prompt);
 
-        return summary;
+        return generatePdfFromSummary(summary);
     }
-
 
     public ByteArrayOutputStream generatePdfFromSummary(String summary) throws DocumentException {
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
@@ -348,7 +345,7 @@ TagService tagService;
         for (String definitionBlock : definitionsBlocks) {
             String[] parts = definitionBlock.split("\n\n");
             for (int i = 0; i < parts.length; i += 2) {
-                if (i + 1 < parts.length) { 
+                if (i + 1 < parts.length) {
                     Map<String, String> card = new HashMap<>();
                     String frontPart = parts[i].replace("Front: ", "").trim();
                     String backPart = parts[i+1].replace("Back: ", "").trim();

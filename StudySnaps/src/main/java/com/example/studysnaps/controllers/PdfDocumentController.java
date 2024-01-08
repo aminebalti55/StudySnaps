@@ -104,68 +104,58 @@ public class PdfDocumentController {
     }
 
 
-    @GetMapping(value = "/download-summary", produces = MediaType.APPLICATION_PDF_VALUE)
-    public ResponseEntity<byte[]> downloadSummary(@RequestParam("file") MultipartFile file,
-                                                  @RequestParam(value = "language", defaultValue = "English") String textLanguage) {
-        try {
-            String summary = pdfDocumentService.summarizePdfText(file, textLanguage);
-            ByteArrayOutputStream baos = pdfDocumentService.generatePdfFromSummary(summary);
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentDisposition(ContentDisposition.builder("attachment").filename("summary.pdf").build());
-            return new ResponseEntity<>(baos.toByteArray(), headers, HttpStatus.OK);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-    }
 
     @PostMapping(value = "/process-pdf", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<Map<String, Object>> processPDF(@RequestParam("file") MultipartFile file,
-                                                          Authentication authentication,
-                                                          @RequestParam(value = "language", defaultValue = "English") String textLanguage,
-                                                          @RequestParam(value = "tags", defaultValue = "") List<String> tags,
-                                                          @RequestParam(value = "action", defaultValue = "quiz") String action) {
+    public ResponseEntity<?> processPDF(@RequestParam("file") MultipartFile file,
+                                        Authentication authentication,
+                                        @RequestParam(value = "language", defaultValue = "English") String textLanguage,
+                                        @RequestParam(value = "tags", defaultValue = "") List<String> tags,
+                                        @RequestParam(value = "action", required = false) String action) {
         try {
 
             String pdfText = pdfDocumentService.extractTextFromPDF(file);
             UserDetails userDetails = (UserDetails) authentication.getPrincipal();
             String userEmail = userDetails.getUsername();
+
             Integer pdfDocumentId = pdfDocumentService.savePDFDocument(pdfText, textLanguage, userEmail, tags);
 
-            Map<String, Object> result;
+            Map<String, Object> result = new HashMap<>();
 
-            if ("quiz".equalsIgnoreCase(action)) {
-                result = pdfDocumentService.generateQuizzesAndAnswers(pdfText, textLanguage, userEmail, tags);
+            if ("summary".equals(action) || "both".equals(action)) {
+                ByteArrayOutputStream summaryPdf = pdfDocumentService.summarizePdfAndGeneratePdf(file, textLanguage);
+                byte[] pdfBytes = summaryPdf.toByteArray();
+                result.put("summary", pdfBytes);
 
-             //   Integer pdfDocumentId = (Integer) result.get("docId");
-                Integer quizId = (Integer) result.get("quizId");
+                if ("summary".equals(action)) {
 
-                if (pdfDocumentId != null && quizId != null) {
-                    quizService.initializeUserProgress(userEmail, quizId, pdfDocumentId);
-                } else {
-                    throw new IllegalStateException("Document ID or Quiz ID not found after save operation.");
+                    HttpHeaders headers = new HttpHeaders();
+                    headers.setContentDisposition(ContentDisposition.builder("attachment").filename("summary.pdf").build());
+                    headers.setContentType(MediaType.APPLICATION_PDF); // Set the correct content type for PDF
+                    return new ResponseEntity<>(pdfBytes, headers, HttpStatus.OK);
                 }
-
-
-            } else if ("flashcards".equalsIgnoreCase(action)) {
-
-                result = pdfDocumentService.generateFlashCards(pdfText, textLanguage, userEmail,pdfDocumentId);
-            } else {
-                throw new IllegalArgumentException("Invalid action specified.");
             }
 
 
+            if ("quiz".equalsIgnoreCase(action) || "both".equals(action)) {
+                Map<String, Object> quizResult = pdfDocumentService.generateQuizzesAndAnswers(pdfText, textLanguage, userEmail, tags);
+                Integer quizId = (Integer) quizResult.get("quizId");
+
+                if (pdfDocumentId != null && quizId != null) {
+                    quizService.initializeUserProgress(userEmail, quizId, pdfDocumentId);
+                }
+
+                result.putAll(quizResult);
+            } else if ("flashcards".equalsIgnoreCase(action)) {
+                Map<String, Object> flashcardResult = pdfDocumentService.generateFlashCards(pdfText, textLanguage, userEmail, pdfDocumentId);
+                result.putAll(flashcardResult);
+            }
 
             return ResponseEntity.ok(result);
-        } catch (IOException e) {
+        } catch (Exception e) {
             e.printStackTrace();
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("error", "Error processing the PDF file: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
-        } catch (IllegalArgumentException | IllegalStateException e) {
-            Map<String, Object> errorResponse = new HashMap<>();
-            errorResponse.put("error", e.getMessage());
-            return ResponseEntity.badRequest().body(errorResponse);
         }
     }
 
