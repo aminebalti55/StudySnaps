@@ -12,6 +12,7 @@ import com.itextpdf.text.DocumentException;
 import com.itextpdf.text.Paragraph;
 import com.itextpdf.text.pdf.PdfDocument;
 import com.itextpdf.text.pdf.PdfWriter;
+import jakarta.persistence.EntityNotFoundException;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -117,7 +118,48 @@ TagService tagService;
 
         return formattedAnswers;
     }
+
+    public Integer savePDFDocument(String pdfText, String textLanguage, String userEmail, List<String> tags) {
+        PDFDocument pdfDocument = new PDFDocument();
+        pdfDocument.setTitle("Title Placeholder");
+        pdfDocument.setTags(tagService.getOrCreateTags(tags));
+        pdfDocument.setFlashCardSet(Collections.emptyList());
+
+        User user = userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+        pdfDocument.setUser(user);
+
+        pdfDocument = pdfDocumentRepository.save(pdfDocument);
+
+        return pdfDocument.getDocId();
+    }
+
     public Map<String, Integer> saveQuizzesAndAnswersToDatabase(Map<String, Object> quizzesAndAnswers, String pdfText, String textLanguage, String userEmail, List<String> tags) {
+        List<String> questions = (List<String>) quizzesAndAnswers.get("questions");
+        List<String> answers = (List<String>) quizzesAndAnswers.get("answers");
+        Map<String, Integer> ids = new HashMap<>();
+
+        if (!questions.isEmpty() && !answers.isEmpty()) {
+            Integer docId = savePDFDocument(pdfText, textLanguage, userEmail, tags);
+
+            Quiz quiz = new Quiz();
+            PDFDocument pdfDocument = pdfDocumentRepository.findById(docId)
+                    .orElseThrow(() -> new EntityNotFoundException("PDF Document with id " + docId + " not found."));
+            quiz.setPdfDoc(pdfDocument);
+            quiz.setTitle("Generated Quiz");
+            quiz.setQuestions(questions);
+            quiz.setAnswers(answers);
+
+            quiz = quizRepository.save(quiz);
+
+            ids.put("docId", docId);
+            ids.put("quizId", quiz.getQuizId());
+        }
+
+        return ids;
+    }
+
+  /*  public Map<String, Integer> saveQuizzesAndAnswersToDatabase(Map<String, Object> quizzesAndAnswers, String pdfText, String textLanguage, String userEmail, List<String> tags) {
         List<String> questions = (List<String>) quizzesAndAnswers.get("questions");
         List<String> answers = (List<String>) quizzesAndAnswers.get("answers");
         Map<String, Integer> ids = new HashMap<>();
@@ -147,7 +189,7 @@ TagService tagService;
         }
 
         return ids;
-    }
+    }*/
 
     private List<String> generateQuestions(String prompt) throws JsonProcessingException {
         HttpHeaders headers = new HttpHeaders();
@@ -292,7 +334,7 @@ TagService tagService;
     }
 
 
-    public Map<String, Object> generateFlashCards(String pdfText, String textLanguage, String userEmail) throws JsonProcessingException {
+    public Map<String, Object> generateFlashCards(String pdfText, String textLanguage, String userEmail,Integer docId) throws JsonProcessingException {
         String prompt = "Extract key concepts and definitions from the following text for creating educational flashcards. " +
                 "Each card should present a concept or term on one side and its definition or explanation on the other side. " +
                 "Focus on the most important and relevant information that would aid in studying the material presented.\n\n" +
@@ -303,11 +345,10 @@ TagService tagService;
         List<String> definitionsBlocks = generateQuestions(prompt);
         List<Map<String, String>> flashcards = new ArrayList<>();
 
-        // Limit to 10 flashcards or the number of available definitions, whichever is smaller
         for (String definitionBlock : definitionsBlocks) {
-            String[] parts = definitionBlock.split("\n\n"); // Split the block into separate "Front" and "Back" parts.
-            for (int i = 0; i < parts.length; i += 2) { // Increment by 2 as we expect "Front" followed by "Back"
-                if (i + 1 < parts.length) { // Ensure that there is a pair of "Front" and "Back"
+            String[] parts = definitionBlock.split("\n\n");
+            for (int i = 0; i < parts.length; i += 2) {
+                if (i + 1 < parts.length) { 
                     Map<String, String> card = new HashMap<>();
                     String frontPart = parts[i].replace("Front: ", "").trim();
                     String backPart = parts[i+1].replace("Back: ", "").trim();
@@ -318,26 +359,25 @@ TagService tagService;
             }
         }
 
-        FlashCardSet set = saveFlashCardSetToDatabase(flashcards, pdfText, textLanguage, userEmail);
+        FlashCardSet set = saveFlashCardSetToDatabase(flashcards, pdfText, textLanguage, userEmail,docId);
 
         Map<String, Object> response = new HashMap<>();
         response.put("flashcards", flashcards);
         return response;
     }
 
-   /* private FlashCardSet saveFlashCardSetToDatabase(List<String> definitions, String pdfText, String textLanguage, String userEmail) {
-        FlashCardSet flashCardSet = new FlashCardSet();
-        flashCardSet = flashCardSetRepository.save(flashCardSet);
-        saveFlashCardsToDatabase(definitions, flashCardSet);
-        return flashCardSet;
-    }*/
 
-    private FlashCardSet saveFlashCardSetToDatabase(List<Map<String, String>> flashcards, String pdfText, String textLanguage, String userEmail) {
+    private FlashCardSet saveFlashCardSetToDatabase(List<Map<String, String>> flashcards, String pdfText, String textLanguage, String userEmail, Integer docId) {
+
+        PDFDocument pdfDocument = pdfDocumentRepository.findById(docId)
+                .orElseThrow(() -> new EntityNotFoundException("PDF Document with id " + docId + " not found."));
 
         FlashCardSet set = new FlashCardSet();
+        set.setPdfDoc(pdfDocument);
+        set.setTitle("Generated Flashcards for " + userEmail);
         set = flashCardSetRepository.save(set);
 
-        for(Map<String, String> card : flashcards) {
+        for (Map<String, String> card : flashcards) {
             FlashCard f = new FlashCard();
             f.setConcept(card.get("concept"));
             f.setDefinitionText(card.get("definition"));

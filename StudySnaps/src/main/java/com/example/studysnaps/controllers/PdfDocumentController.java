@@ -130,13 +130,14 @@ public class PdfDocumentController {
             String pdfText = pdfDocumentService.extractTextFromPDF(file);
             UserDetails userDetails = (UserDetails) authentication.getPrincipal();
             String userEmail = userDetails.getUsername();
+            Integer pdfDocumentId = pdfDocumentService.savePDFDocument(pdfText, textLanguage, userEmail, tags);
 
             Map<String, Object> result;
 
             if ("quiz".equalsIgnoreCase(action)) {
                 result = pdfDocumentService.generateQuizzesAndAnswers(pdfText, textLanguage, userEmail, tags);
 
-                Integer pdfDocumentId = (Integer) result.get("docId");
+             //   Integer pdfDocumentId = (Integer) result.get("docId");
                 Integer quizId = (Integer) result.get("quizId");
 
                 if (pdfDocumentId != null && quizId != null) {
@@ -148,7 +149,7 @@ public class PdfDocumentController {
 
             } else if ("flashcards".equalsIgnoreCase(action)) {
 
-                result = pdfDocumentService.generateFlashCards(pdfText, textLanguage, userEmail);
+                result = pdfDocumentService.generateFlashCards(pdfText, textLanguage, userEmail,pdfDocumentId);
             } else {
                 throw new IllegalArgumentException("Invalid action specified.");
             }
