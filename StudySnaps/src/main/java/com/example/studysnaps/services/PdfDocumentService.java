@@ -7,11 +7,10 @@ import com.example.studysnaps.entities.*;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.itextpdf.text.Document;
-import com.itextpdf.text.DocumentException;
-import com.itextpdf.text.Paragraph;
+import com.itextpdf.text.*;
 import com.itextpdf.text.pdf.PdfDocument;
 import com.itextpdf.text.pdf.PdfWriter;
+import com.itextpdf.text.pdf.draw.LineSeparator;
 import jakarta.persistence.EntityNotFoundException;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
@@ -30,6 +29,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.*;
+import java.util.List;
 
 @Service
 public class PdfDocumentService {
@@ -320,13 +320,33 @@ TagService tagService;
         return generatePdfFromSummary(summary);
     }
 
-    public ByteArrayOutputStream generatePdfFromSummary(String summary) throws DocumentException {
+    public ByteArrayOutputStream generatePdfFromSummary(String summary) throws DocumentException, IOException {
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
         Document document = new Document();
-        PdfWriter.getInstance(document, byteArrayOutputStream);
+        PdfWriter writer = PdfWriter.getInstance(document, byteArrayOutputStream);
+
         document.open();
-        document.add(new Paragraph(summary));
+
+
+        Font titleFont = new Font(Font.FontFamily.TIMES_ROMAN, 18, Font.BOLD, BaseColor.DARK_GRAY);
+        Paragraph title = new Paragraph("Summary", titleFont);
+        title.setAlignment(Element.ALIGN_CENTER);
+        document.add(title);
+
+        // Add a separator line
+        LineSeparator separator = new LineSeparator();
+        separator.setLineColor(BaseColor.DARK_GRAY);
+        document.add(new Chunk(separator));
+
+        // Add content
+        Font contentFont = new Font(Font.FontFamily.TIMES_ROMAN, 12, Font.NORMAL, BaseColor.BLACK);
+        Paragraph content = new Paragraph(summary, contentFont);
+        content.setSpacingBefore(15);
+        content.setSpacingAfter(15);
+        document.add(content);
+
         document.close();
+
         return byteArrayOutputStream;
     }
 
