@@ -297,32 +297,55 @@ TagService tagService;
                 "Each card should present a concept or term on one side and its definition or explanation on the other side. " +
                 "Focus on the most important and relevant information that would aid in studying the material presented.\n\n" +
                 "Language: " + textLanguage + "\n\n" +
-                 pdfText.substring(0, Math.min(pdfText.length(), 500)) + "\n\n" +
+                pdfText.substring(0, Math.min(pdfText.length(), 500)) + "\n\n" +
                 "Flashcards:";
 
+        List<String> definitionsBlocks = generateQuestions(prompt);
+        List<Map<String, String>> flashcards = new ArrayList<>();
 
-        List<String> definitions = generateQuestions(prompt);
-        Map<String, Object> flashCards = new HashMap<>();
-        FlashCardSet flashCardSet = saveFlashCardSetToDatabase(definitions, pdfText, textLanguage, userEmail);
-        flashCards.put("flashCardDefinitions", definitions);
+        // Limit to 10 flashcards or the number of available definitions, whichever is smaller
+        for (String definitionBlock : definitionsBlocks) {
+            String[] parts = definitionBlock.split("\n\n"); // Split the block into separate "Front" and "Back" parts.
+            for (int i = 0; i < parts.length; i += 2) { // Increment by 2 as we expect "Front" followed by "Back"
+                if (i + 1 < parts.length) { // Ensure that there is a pair of "Front" and "Back"
+                    Map<String, String> card = new HashMap<>();
+                    String frontPart = parts[i].replace("Front: ", "").trim();
+                    String backPart = parts[i+1].replace("Back: ", "").trim();
+                    card.put("concept", frontPart);
+                    card.put("definition", backPart);
+                    flashcards.add(card);
+                }
+            }
+        }
 
-        return flashCards;
+        FlashCardSet set = saveFlashCardSetToDatabase(flashcards, pdfText, textLanguage, userEmail);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("flashcards", flashcards);
+        return response;
     }
 
-    private FlashCardSet saveFlashCardSetToDatabase(List<String> definitions, String pdfText, String textLanguage, String userEmail) {
+   /* private FlashCardSet saveFlashCardSetToDatabase(List<String> definitions, String pdfText, String textLanguage, String userEmail) {
         FlashCardSet flashCardSet = new FlashCardSet();
         flashCardSet = flashCardSetRepository.save(flashCardSet);
         saveFlashCardsToDatabase(definitions, flashCardSet);
         return flashCardSet;
-    }
+    }*/
 
-    private void saveFlashCardsToDatabase(List<String> definitions, FlashCardSet flashCardSet) {
-        for (String definition : definitions) {
-            FlashCard flashCard = new FlashCard();
-            flashCard.setFlashCardSet(flashCardSet);
-            flashCard.setDefinitionText(definition);
-            flashCardRepository.save(flashCard);
+    private FlashCardSet saveFlashCardSetToDatabase(List<Map<String, String>> flashcards, String pdfText, String textLanguage, String userEmail) {
+
+        FlashCardSet set = new FlashCardSet();
+        set = flashCardSetRepository.save(set);
+
+        for(Map<String, String> card : flashcards) {
+            FlashCard f = new FlashCard();
+            f.setConcept(card.get("concept"));
+            f.setDefinitionText(card.get("definition"));
+            f.setFlashCardSet(set);
+            flashCardRepository.save(f);
         }
+
+        return set;
     }
 
 

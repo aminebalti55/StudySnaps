@@ -20,4 +20,7 @@ public class FlashCard {
     @Column(columnDefinition = "TEXT")
     private String definitionText;
 
+    @Column(columnDefinition = "TEXT")
+    private String concept;
+
 }
