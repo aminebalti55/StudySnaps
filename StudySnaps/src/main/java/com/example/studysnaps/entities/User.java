@@ -1,5 +1,6 @@
 package com.example.studysnaps.entities;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.Getter;
@@ -31,10 +32,13 @@ public class User  implements UserDetails {
 
     private Role role;
 
-
+    @JsonIgnore
     @OneToMany(mappedBy = "user")
     private List<PDFDocument> uploadedDocuments;
 
+    @ManyToOne
+    @JoinColumn(name = "roomId")
+    private Room room;
 
     @Column(name = "is_deleted")
     private Boolean isDeleted = false;
@@ -58,12 +62,9 @@ public class User  implements UserDetails {
     }
 
 
-    @ManyToMany(mappedBy = "members")
-    private List<StudyGroup> studyGroups;
 
-    @OneToMany(mappedBy = "user")
-    private List<GroupQuizSessionScore> groupQuizSessionScores;
 
+    @JsonIgnore
 
     @OneToMany(mappedBy = "user")
     private List<UserProgressTracking> progressTrackingList;

@@ -4,15 +4,19 @@ package com.example.studysnaps.controllers;
 import com.example.studysnaps.Repositories.FlashCardRepository;
 import com.example.studysnaps.Repositories.PDFDocumentRepository;
 import com.example.studysnaps.Repositories.QuizRepository;
+import com.example.studysnaps.dto.RoomDTO;
 import com.example.studysnaps.entities.FlashCard;
+import com.example.studysnaps.entities.Room;
 import com.example.studysnaps.services.PdfDocumentService;
 
 import com.example.studysnaps.services.QuizService;
+import com.example.studysnaps.services.RoomService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.*;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -33,6 +37,9 @@ public class PdfDocumentController {
 
     @Autowired
     QuizService quizService;
+
+    @Autowired
+    RoomService roomService;
 
     @Autowired
     PDFDocumentRepository pdfDocumentRepository;
@@ -159,6 +166,19 @@ public class PdfDocumentController {
         }
     }
 
+
+
+    @PostMapping("/create")
+    public ResponseEntity<RoomDTO> createRoom(@RequestParam("opponentUsername") String opponentUsername) {
+        try {
+            RoomDTO roomDTO = roomService.createRoom(opponentUsername);
+            return ResponseEntity.ok(roomDTO);
+        } catch (UsernameNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+        }
+    }
 }
 
 

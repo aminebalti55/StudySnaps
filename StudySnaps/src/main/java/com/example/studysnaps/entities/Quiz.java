@@ -35,6 +35,12 @@ public class Quiz {
     @ElementCollection
     private List<String> userResponses;
 
+    @ElementCollection
+    private List<String> userResponses2;
+
+    @OneToOne(mappedBy = "quiz")
+    private Room room;
+
     private Duration quizDuration;
 
     private LocalDateTime quizStartTime;
