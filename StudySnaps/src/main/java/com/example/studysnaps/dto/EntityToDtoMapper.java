@@ -14,6 +14,8 @@ public class EntityToDtoMapper {
         dto.setFirstName(user.getFirstName());
         dto.setLastName(user.getLastName());
         dto.setEmail(user.getEmail());
+        dto.setUserClass(user.getUserClass());
+        dto.setUniversity(user.getUniversity());
         return dto;
     }
 
