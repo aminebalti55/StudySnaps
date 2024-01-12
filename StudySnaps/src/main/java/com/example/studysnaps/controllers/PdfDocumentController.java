@@ -28,6 +28,8 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/Pdf")
+@CrossOrigin(origins = "*") // Allow all origins
+
 public class PdfDocumentController {
 
     @Autowired
@@ -168,7 +170,7 @@ public class PdfDocumentController {
 
 
 
-    @PostMapping("/create")
+/*    @PostMapping("/create")
     public ResponseEntity<RoomDTO> createRoom(@RequestParam("opponentUsername") String opponentUsername) {
         try {
             RoomDTO roomDTO = roomService.createRoom(opponentUsername);
@@ -178,6 +180,17 @@ public class PdfDocumentController {
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
+    }
+*/
+
+    @PostMapping("/quickmatch")
+    public ResponseEntity<?> requestQuickMatch(Authentication authentication) {
+        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+        String username = userDetails.getUsername();
+
+        roomService.addToQuickMatchQueue(username);
+
+        return ResponseEntity.ok("Quick match requested");
     }
 }
 

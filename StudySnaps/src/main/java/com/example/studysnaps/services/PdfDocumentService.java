@@ -341,8 +341,8 @@ TagService tagService;
         // Add content
         Font contentFont = new Font(Font.FontFamily.TIMES_ROMAN, 12, Font.NORMAL, BaseColor.BLACK);
         Paragraph content = new Paragraph(summary, contentFont);
-        content.setSpacingBefore(20);
-        content.setSpacingAfter(20);
+        content.setSpacingBefore(15);
+        content.setSpacingAfter(15);
         document.add(content);
 
         document.close();

@@ -2,9 +2,10 @@ package com.example.studysnaps.dto;
 
 import com.example.studysnaps.entities.Room;
 import com.example.studysnaps.entities.User;
+import org.springframework.stereotype.Service;
 
 import java.util.stream.Collectors;
-
+@Service
 public class EntityToDtoMapper {
 
     public UserDTO toUserDTO(User user) {
