@@ -31,10 +31,9 @@ public class User  implements UserDetails {
     @Column(nullable = false)
     private String password;
     private String email;
-
+    @Enumerated(EnumType.STRING)
     private Role role;
 
-    @JsonIgnore
     @OneToMany(mappedBy = "user")
     private List<PDFDocument> uploadedDocuments;
 

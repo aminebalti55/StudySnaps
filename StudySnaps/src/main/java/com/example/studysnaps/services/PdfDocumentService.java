@@ -65,7 +65,7 @@ TagService tagService;
     private String apiKey;
 
 
-    public Map<String, Object> generateQuizzesAndAnswers(String pdfText, String textLanguage, String userEmail,List<String> tags) throws JsonProcessingException {
+    public Map<String, Object> generateQuizzesAndAnswers(String pdfText, String textLanguage, String userEmail,List<String> tags,Integer pdfDocumentId) throws JsonProcessingException {
 
         String prompt = "Please read the following text and generate a list of 10 unique questions suitable for a quiz, each one designed to test comprehension of the material presented. Focus on key details and concepts introduced in the passages.\n\n"
                 + "Language: " + textLanguage + "\n\n"
@@ -84,7 +84,7 @@ TagService tagService;
         List<String> formattedAnswers = formatAnswers(answers);
         quizzesAndAnswers.put("answers", formattedAnswers);
 
-        Map<String, Integer> ids = saveQuizzesAndAnswersToDatabase(quizzesAndAnswers, pdfText, textLanguage, userEmail, tags);
+        Map<String, Integer> ids = saveQuizzesAndAnswersToDatabase(quizzesAndAnswers, pdfDocumentId);
         quizzesAndAnswers.putAll(ids);
 
         return quizzesAndAnswers;
@@ -134,14 +134,12 @@ TagService tagService;
         return pdfDocument.getDocId();
     }
 
-    public Map<String, Integer> saveQuizzesAndAnswersToDatabase(Map<String, Object> quizzesAndAnswers, String pdfText, String textLanguage, String userEmail, List<String> tags) {
+    public Map<String, Integer> saveQuizzesAndAnswersToDatabase(Map<String, Object> quizzesAndAnswers, Integer docId) {
         List<String> questions = (List<String>) quizzesAndAnswers.get("questions");
         List<String> answers = (List<String>) quizzesAndAnswers.get("answers");
         Map<String, Integer> ids = new HashMap<>();
 
         if (!questions.isEmpty() && !answers.isEmpty()) {
-            Integer docId = savePDFDocument(pdfText, textLanguage, userEmail, tags);
-
             Quiz quiz = new Quiz();
             PDFDocument pdfDocument = pdfDocumentRepository.findById(docId)
                     .orElseThrow(() -> new EntityNotFoundException("PDF Document with id " + docId + " not found."));
@@ -158,6 +156,7 @@ TagService tagService;
 
         return ids;
     }
+
 
   /*  public Map<String, Integer> saveQuizzesAndAnswersToDatabase(Map<String, Object> quizzesAndAnswers, String pdfText, String textLanguage, String userEmail, List<String> tags) {
         List<String> questions = (List<String>) quizzesAndAnswers.get("questions");

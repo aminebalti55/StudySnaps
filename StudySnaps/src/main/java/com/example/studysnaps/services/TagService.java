@@ -48,23 +48,23 @@ public class TagService {
 
             // Associate each uploaded document with the tag
             List<PDFDocument> uploadedDocuments = user.getUploadedDocuments();
-            if (uploadedDocuments != null) {
+            if (uploadedDocuments != null && !uploadedDocuments.isEmpty()) {
                 for (PDFDocument document : uploadedDocuments) {
                     tag.getDocuments().add(document);
                 }
+
+                DocumentTag documentTag = new DocumentTag();
+                documentTag.setPdfDocument(uploadedDocuments.get(0));
+                documentTag.setUserId(user.getUserId());
+                documentTagRepository.save(documentTag);
             }
 
             tagRepository.save(tag);
 
             tags.add(tag);
-
-            DocumentTag documentTag = new DocumentTag();
-            documentTag.setPdfDocument(user.getUploadedDocuments().get(0));
-            documentTag.setUserId(user.getUserId());
-
-            documentTagRepository.save(documentTag);
         }
 
         return tags;
     }
+
 }

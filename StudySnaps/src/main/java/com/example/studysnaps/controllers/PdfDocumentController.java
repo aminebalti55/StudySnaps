@@ -28,7 +28,6 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/Pdf")
-@CrossOrigin(origins = "*") // Allow all origins
 
 public class PdfDocumentController {
 
@@ -49,7 +48,7 @@ public class PdfDocumentController {
     FlashCardRepository flashCardRepository;
 
 
-    @PostMapping(value = "/upload-pdf", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    /*@PostMapping(value = "/upload-pdf", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Map<String, Object>> uploadPDF(@RequestParam("file") MultipartFile file,
                                                          Authentication authentication,
                                                          @RequestParam(value = "language", defaultValue = "English") String textLanguage,
@@ -85,7 +84,7 @@ public class PdfDocumentController {
             return ResponseEntity.badRequest().body(errorResponse);
         }
     }
-
+*/
 
     @PostMapping("/check-answer/{quizId}/{questionIndex}")
     public ResponseEntity<String> checkAnswer(
@@ -146,7 +145,7 @@ public class PdfDocumentController {
 
 
             if ("quiz".equalsIgnoreCase(action) || "both".equals(action)) {
-                Map<String, Object> quizResult = pdfDocumentService.generateQuizzesAndAnswers(pdfText, textLanguage, userEmail, tags);
+                Map<String, Object> quizResult = pdfDocumentService.generateQuizzesAndAnswers(pdfText, textLanguage, userEmail, tags, pdfDocumentId);
                 Integer quizId = (Integer) quizResult.get("quizId");
 
                 if (pdfDocumentId != null && quizId != null) {

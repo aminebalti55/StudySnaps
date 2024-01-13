@@ -118,7 +118,6 @@ EntityToDtoMapper entityToDtoMapper;
             System.out.println("User List: " + userList);
         });
 
-        // Create matches for users in the same university and class.
         usersByEmailAndClass.forEach((key, userList) -> {
             while (userList.size() >= 2) {
                 UserDTO user1 = userList.remove(0);
@@ -143,7 +142,6 @@ EntityToDtoMapper entityToDtoMapper;
 
         Room room = new Room();
 
-        // Convert UserDTO back to User if necessary
         User user1Entity = convertDtoToEntity(user1);
         User user2Entity = convertDtoToEntity(user2);
 
@@ -151,7 +149,6 @@ EntityToDtoMapper entityToDtoMapper;
         room.setIsActive(true);
         room.setOwnerId(user1Entity.getUserId());
 
-        // Save the room entity first
         roomRepository.save(room);
 
         user1Entity.setRoom(room);
@@ -175,7 +172,7 @@ EntityToDtoMapper entityToDtoMapper;
 
 
     private void notifyUsers(Room room) {
-        // Iterate over the users in the room and send them the room details
+
         for (User user : room.getUsers()) {
             webSocketNotificationService.notifyUserOfMatch(user.getUsername(), room);
         }
