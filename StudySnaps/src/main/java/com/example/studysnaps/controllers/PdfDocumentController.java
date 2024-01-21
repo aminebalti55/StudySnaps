@@ -4,6 +4,7 @@ package com.example.studysnaps.controllers;
 import com.example.studysnaps.Repositories.FlashCardRepository;
 import com.example.studysnaps.Repositories.PDFDocumentRepository;
 import com.example.studysnaps.Repositories.QuizRepository;
+import com.example.studysnaps.Repositories.RoomRepository;
 import com.example.studysnaps.dto.RoomDTO;
 import com.example.studysnaps.entities.FlashCard;
 import com.example.studysnaps.entities.Room;
@@ -15,13 +16,16 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.*;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.nio.file.attribute.UserPrincipal;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -41,6 +45,9 @@ public class PdfDocumentController {
 
     @Autowired
     RoomService roomService;
+
+    @Autowired
+    RoomRepository roomRepository;
 
     @Autowired
     PDFDocumentRepository pdfDocumentRepository;
@@ -182,6 +189,55 @@ public class PdfDocumentController {
     }
 */
 
+
+    @PostMapping(value = "/rooms/{roomId}/upload-pdf", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<?> uploadPDFToRoom(
+            @PathVariable Integer roomId,
+            @RequestParam("file") MultipartFile file,
+            Authentication authentication,
+            @RequestParam(value = "language", defaultValue = "English") String textLanguage,
+            @RequestParam(value = "tags", defaultValue = "") List<String> tags) {
+
+        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+        String userEmail = userDetails.getUsername();
+
+        Integer userId = roomService.getUserIDByEmail(userEmail);
+
+        try {
+            Room room = roomService.findRoomById(roomId);
+            if (!room.getOwnerId().equals(userId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body("Error: You are not authorized to upload a PDF to this room.");
+            }
+
+
+            String pdfText = pdfDocumentService.extractTextFromPDF(file);
+            Integer pdfDocumentId = pdfDocumentService.savePDFDocument(pdfText, textLanguage, userEmail, tags);
+
+            Map<String, Object> quizzesAndAnswers = pdfDocumentService.generateQuizzesAndAnswers(pdfText, textLanguage, userEmail, tags, pdfDocumentId);
+
+            Integer quizId = (Integer) quizzesAndAnswers.get("quizId");
+
+            if (pdfDocumentId != null && quizId != null) {
+                roomService.addQuizToRoom(roomId, quizId);
+            } else {
+                throw new IllegalStateException("Quiz or Document ID not found after save operation.");
+            }
+
+            return ResponseEntity.ok(quizzesAndAnswers);
+
+        } catch (IOException e) {
+            // Log error details here for debug purposes
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error processing the PDF file: " + e.getMessage());
+        } catch (IllegalStateException e) {
+            // Log error details here for debug purposes
+            return ResponseEntity.badRequest()
+                    .body("Error: " + e.getMessage());
+        }
+    }
+
+
     @PostMapping("/quickmatch")
     public ResponseEntity<?> requestQuickMatch(Authentication authentication) {
         UserDetails userDetails = (UserDetails) authentication.getPrincipal();
@@ -191,6 +247,9 @@ public class PdfDocumentController {
 
         return ResponseEntity.ok("Quick match requested");
     }
+
+
+
 }
 
 

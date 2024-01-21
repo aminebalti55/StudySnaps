@@ -1,13 +1,16 @@
 package com.example.studysnaps.services;
 
 import com.example.studysnaps.Repositories.PDFDocumentRepository;
+import com.example.studysnaps.Repositories.QuizRepository;
 import com.example.studysnaps.Repositories.RoomRepository;
 import com.example.studysnaps.Repositories.UserRepository;
 import com.example.studysnaps.dto.EntityToDtoMapper;
 import com.example.studysnaps.dto.RoomDTO;
 import com.example.studysnaps.dto.UserDTO;
+import com.example.studysnaps.entities.Quiz;
 import com.example.studysnaps.entities.Room;
 import com.example.studysnaps.entities.User;
+import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,6 +36,9 @@ public class RoomService {
     PdfDocumentService pdfDocumentService;
     @Autowired
     RoomRepository roomRepository;
+
+    @Autowired
+    private QuizRepository quizRepository;
 
     @Autowired
     TagService tagService;
@@ -168,6 +174,53 @@ EntityToDtoMapper entityToDtoMapper;
         userRepository.save(user1Entity);
         userRepository.save(user2Entity);
         // notifyUsers(room);
+    }
+
+    /**
+     * Finds a room by its ID.
+     *
+     * @param roomId the id of the room to find
+     * @return the found room
+     * @throws EntityNotFoundException if the room is not found
+     */
+    public Room findRoomById(Integer roomId) {
+        return roomRepository.findById(roomId)
+                .orElseThrow(() -> new EntityNotFoundException("Room not found with ID: " + roomId));
+    }
+
+    /**
+     * Retrieves the user ID based on their email.
+     *
+     * @param email the email to search for
+     * @return the user ID if found, otherwise null
+     */
+    public Integer getUserIDByEmail(String email) {
+        return userRepository.findByEmail(email)
+                .map(User::getUserId) // Replace getId with the actual method name you have for getting ID in User entity
+                .orElse(null);
+    }
+
+
+    /**
+     * Associates a quiz with a room.
+     *
+     * @param roomId the ID of the room
+     * @param quizId the ID of the quiz
+     */
+    public void addQuizToRoom(Integer roomId, Integer quizId) {
+        Room room = roomRepository.findById(roomId)
+                .orElseThrow(() -> new EntityNotFoundException("Room not found with ID: " + roomId));
+        Quiz quiz = quizRepository.findById(quizId)
+                .orElseThrow(() -> new EntityNotFoundException("Quiz not found with ID: " + quizId));
+
+        // Set the quiz for the room
+        room.setQuiz(quiz);
+
+        // Optionally, set the reverse relationship, if you have a field `room` in the Quiz entity
+        quiz.setRoom(room);
+
+        // Save the modified entities
+        roomRepository.save(room);
     }
 
 
